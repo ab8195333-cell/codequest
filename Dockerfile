@@ -1,15 +1,16 @@
 FROM webdevops/php-nginx:8.4-alpine
 
-# تحديد مجلد العمل أولاً
+# ضبط مسار الـ Web Root الخاص بصورة webdevops ليوجه Nginx إلى مجلد public
+ENV WEBROOT=/var/www/html/public
+ENV PHP_DOCUMENT_ROOT=/var/www/html/public
+
+# تحديد مجلد العمل
 WORKDIR /var/www/html
 
-# نسخ ملفات المشروع إلى مجلد العمل
+# نسخ ملفات المشروع
 COPY . /var/www/html
 
-# ضبط مسار الـ Web Root لـ Nginx
-ENV WEBROOT=/var/www/html/public
-
-# تثبيت الحزم 
+# تثبيت الحزم بدون مشاكل
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # ضبط الصلاحيات للمجلدات
