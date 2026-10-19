@@ -38,44 +38,45 @@ class QuestionController extends Controller
         return view('show', compact('question'));
     }
 
-    public function store(Request $request)
+    ج    public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category_id' => 'required|exists:categories,id',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
+            ]);
 
-        // 1. إنشاء السؤال وحفظه مع ربط الـ description بعمود body
-        $question = Question::create([
-            'title' => $request->title,
-            'body' => $request->description,
-            'category_id' => $request->category_id,
-            'user_id' => auth()->id(),
-        ]);
+            $question = Question::create([
+                'title' => $request->title,
+                'body' => $request->description,
+                'category_id' => $request->category_id,
+                'user_id' => auth()->id(),
+            ]);
 
-        // 2. ربط الوسوم بالسؤال في الجدول الوسيط question_tag داخل الدالة بشكل صحيح
-        if ($request->filled('tags')) {
-            $tagsInput = $request->tags;
-
-            if (is_array($tagsInput)) {
-                $tagsInput = $tagsInput[0] ?? null;
-            }
-
-            if (is_string($tagsInput)) {
-                $tagsData = json_decode($tagsInput, true);
-
-                if (is_array($tagsData)) {
-                    $tagIds = array_column($tagsData, 'id');
-                    $question->tags()->attach($tagIds);
+            if ($request->filled('tags')) {
+                $tagsInput = $request->tags;
+                if (is_array($tagsInput)) {
+                    $tagsInput = $tagsInput[0] ?? null;
+                }
+                if (is_string($tagsInput)) {
+                    $tagsData = json_decode($tagsInput, true);
+                    if (is_array($tagsData)) {
+                        $tagIds = array_column($tagsData, 'id');
+                        $question->tags()->attach($tagIds);
+                    }
                 }
             }
-        }
 
-        // 3. التوجيه المباشر إلى صفحة عرض السؤال الجديد بعد النشر الناجح
-        return redirect()->route('questions.show', $question->question_id ?? $question->id)
-            ->with('success', 'تم نشر السؤال بنجاح!');
+            return redirect()->route('questions.show', $question->question_id ?? $question->id)
+                ->with('success', 'تم نشر السؤال بنجاح!');
+
+        } catch (\Exception $e) {
+            // اطبع الخطأ الحقيقي على الشاشة لنعرف السبب فوراً
+            dd($e->getMessage());
+        }
     }
+
 
      
 
