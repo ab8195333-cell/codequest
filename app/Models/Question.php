@@ -9,7 +9,7 @@ class Question extends Model
 {
     /** @use HasFactory<\Database\Factories\QuestionFactory> */
     use HasFactory;
-    protected $primaryKey = 'question_id'; // لأن المفتاح الرئيسي هو question_id
+   protected $primaryKey = 'id';  // لأن المفتاح الرئيسي هو question_id
     protected $fillable = [
         'title',
         'description',
