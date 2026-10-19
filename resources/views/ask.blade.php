@@ -127,6 +127,12 @@
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
     <script src="{{ asset('js/quill-uploader.js') }}"></script>
 
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+    <!-- استدعاء مكتبة Quill قبل ملف quill-uploader.js -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <script src="{{ asset('js/quill-uploader.js') }}"></script>
+
     <script>
         // 1. Tagify Setup
         var input = document.querySelector('#tagsInput');
@@ -149,7 +155,7 @@
             tagify.addTags(selectedTags);
         }
 
-        // 2. Quill Setup
+        // 2. Quill Setup & Form Submission Fix
         document.addEventListener("DOMContentLoaded", function() {
             var editor = initQuillEditor(
                 'question-editor',
@@ -161,6 +167,18 @@
 
             if (existingContent && editor && !editor.root.innerHTML.trim()) {
                 editor.root.innerHTML = existingContent;
+            }
+
+            // 🔴 التعديل الجوهري: مزامنة محتوى المحرر مع الحقل المخفي قبل إرسال الفورم
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    var questionInput = document.querySelector('#questionInput');
+                    if (editor && questionInput) {
+                        // وضع محتوى المحرر (HTML) داخل الحقل المخفي ليرسله الكنترولر بدقة
+                        questionInput.value = editor.root.innerHTML;
+                    }
+                });
             }
         });
     </script>
