@@ -1,4 +1,4 @@
-FROM webdevops/php-nginx:8.3-alpine
+FROM webdevops/php-nginx:8.4-alpine
 
 # تحديد مجلد العمل
 WORKDIR /var/www/html
@@ -10,9 +10,9 @@ COPY . .
 ENV WEBROOT=/var/www/html/public
 ENV PHP_MEMORY_LIMIT=512M
 
-# تثبيت حزم Composer للإنتاج
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# تحديث وتثبيت حزم Composer بالاعتماد على PHP 8.4
+RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
 
-# ضبط الصلاحيات للمجلدات التي يحتاجها لارافيل
+# ضبط الصلاحيات للمجلدات
 RUN chown -R application:application /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
