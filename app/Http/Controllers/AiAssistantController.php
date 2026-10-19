@@ -20,43 +20,36 @@ class AiAssistantController extends Controller
             'history' => 'nullable|array',
         ]);
 
-        // جلب مفتاح OpenAI API من جدول الإعدادات أو ملف البيئة
-        $apiKey = Setting::where('key', 'openai_api_key')->value('value')
-                  ?? config('services.openai.api_key') 
-                  ?? env('OPENAI_API_KEY');
+        // جلب مفتاح Gemini API من قاعدة البيانات أو البيئة
+        $apiKey = Setting::where('key', 'gemini_api_key')->value('value')
+                  ?? config('services.gemini.api_key') 
+                  ?? env('GEMINI_API_KEY');
 
         if (! $apiKey) {
             return response()->json([
                 'success' => false,
-                'message' => 'لم يتم إعداد مفتاح OpenAI API بشكل صحيح.',
+                'message' => 'لم يتم إعداد مفتاح Gemini API بشكل صحيح.',
             ], 400);
         }
 
-        // جلب تعليمات النظام
         $adminSystemPrompt = Setting::where('key', 'system_prompt')->value('value')
-                             ?? config('services.ai.system_prompt')
                              ?? 'You are a helpful AI coding assistant for CodeQuest.';
 
         try {
-            $response = Http::withToken($apiKey)
-                ->timeout(60)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [
+            // إرسال الطلب لنموذج Gemini المجاني والسريع
+            $response = Http::timeout(60)
+                ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey, [
+                    'contents' => [
                         [
-                            'role' => 'system',
-                            'content' => $adminSystemPrompt
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => "Code/Question:\n" . $request->code
+                            'parts' => [
+                                ['text' => $adminSystemPrompt . "\n\nCode/Question:\n" . $request->code]
+                            ]
                         ]
-                    ],
-                    'temperature' => 0.7,
+                    ]
                 ]);
 
             if ($response->successful()) {
-                $reply = $response->json('choices.0.message.content') ?? 'تمت المعالجة بنجاح.';
+                $reply = $response->json('candidates.0.content.parts.0.text') ?? 'تمت المعالجة بنجاح.';
 
                 return response()->json([
                     'success' => true,
@@ -66,13 +59,13 @@ class AiAssistantController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ من خادم OpenAI: ' . $response->json('error.message', 'خطأ غير معروف'),
+                'message' => 'حدث خطأ من خادم Gemini: ' . $response->json('error.message', 'خطأ غير معروف'),
             ], 500);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'فشل الاتصال بخدمة OpenAI.',
+                'message' => 'فشل الاتصال بخدمة Gemini.',
             ], 500);
         }
     }
