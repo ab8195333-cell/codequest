@@ -38,7 +38,7 @@ class QuestionController extends Controller
         return view('show', compact('question'));
     }
 
-    ج    public function store(Request $request)
+       public function store(Request $request)
     {
         try {
             $request->validate([
