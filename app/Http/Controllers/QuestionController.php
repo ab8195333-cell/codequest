@@ -72,8 +72,12 @@ class QuestionController extends Controller
             }
         }
 
-        return redirect()->route('questions.index')->with('success', 'تم نشر السؤال بنجاح!');
+        // 3. التوجيه المباشر إلى صفحة عرض السؤال الجديد بعد النشر الناجح
+        return redirect()->route('questions.show', $question->question_id ?? $question->id)
+            ->with('success', 'تم نشر السؤال بنجاح!');
     }
+
+     
 
     public function updateindex(Question $question)
     {
