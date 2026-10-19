@@ -22,7 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('login');
             }
         );
-        // 1. تسجيل جميع الـ Aliases في مصفوفة واحدة
+
+        // 1. تسجيل جميع الـ Aliases
         $middleware->alias([
             'role' => CheckRole::class,
             'active' => CheckActiveUser::class,
@@ -33,12 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             CheckMaintenanceMode::class,
         ]);
 
-        // // 3. إعداد الـ Proxies
-        // $middleware->trustProxies(at: '*');
-//         'providers' => [
-//     // ...مُقدمين آخرين
-//     Illuminate\View\ViewServiceProvider::class,
-// ],
+        // 3. إعداد الـ Proxies للثقة بجميع بروكسيات Render وثبات الجلسات
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
