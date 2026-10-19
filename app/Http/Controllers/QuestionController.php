@@ -39,43 +39,43 @@ class QuestionController extends Controller
     }
 
 public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'cat_id' => 'required|exists:categories,id',
-        ]);
+{
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'cat_id' => 'required|exists:categories,id',
+    ]);
 
-        // التقاط محتوى الوصف من أي حقل محتمل وضمان عدم وصوله فارغاً
-        $questionBody = $request->input('description') ?? $request->input('body') ?? '<p>لايوجد وصف</p>';
+    // التقاط محتوى الوصف وضمان عدم وصوله فارغاً أو نصاً فارغاً
+    $questionBody = $request->input('description') ?: $request->input('body') ?: '<p>لايوجد وصف</p>';
 
-        $question = Question::create([
-            'title' => $request->title,
-            'body' => $questionBody, // سيتم الحفظ هنا ولن يحدث خطأ قاعدة بيانات أبداً
-            'category_id' => $request->cat_id,
-            'user_id' => auth()->id(),
-        ]);
+    $question = Question::create([
+        'title' => $request->title,
+        'body' => $questionBody, 
+        'category_id' => $request->cat_id,
+        'user_id' => auth()->id(),
+    ]);
 
-        // ربط الوسوم بالسؤال
-        if ($request->filled('tags')) {
-            $tagsInput = $request->tags;
+    // ربط الوسوم بالسؤال
+    if ($request->filled('tags')) {
+        $tagsInput = $request->tags;
 
-            if (is_array($tagsInput)) {
-                $tagsInput = $tagsInput[0] ?? null;
-            }
-
-            if (is_string($tagsInput)) {
-                $tagsData = json_decode($tagsInput, true);
-
-                if (is_array($tagsData)) {
-                    $tagIds = array_column($tagsData, 'id');
-                    $question->tags()->attach($tagIds);
-                }
-            }
+        if (is_array($tagsInput)) {
+            $tagsInput = $tagsInput[0] ?? null;
         }
 
-        return redirect()->route('questions.show', $question->question_id ?? $question->id)
-            ->with('success', 'تم نشر السؤال بنجاح!');
+        if (is_string($tagsInput)) {
+            $tagsData = json_decode($tagsInput, true);
+
+            if (is_array($tagsData)) {
+                $tagIds = array_column($tagsData, 'id');
+                $question->tags()->attach($tagIds);
+            }
+        }
     }
+
+    return redirect()->route('questions.show', $question->question_id ?? $question->id)
+        ->with('success', 'تم نشر السؤال بنجاح!');
+}
      
 
     public function updateindex(Question $question)
