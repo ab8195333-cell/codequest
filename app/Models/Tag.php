@@ -16,7 +16,7 @@ class Tag extends Model
         'description',
     ];
 
-    protected $primaryKey = 'tag_id'; // لأن المفتاح الرئيسي ليس id في مخططك
+    protected $primaryKey = 'id'; // لأن المفتاح الرئيسي ليس id في مخططك
 
     public function questions()
     {
