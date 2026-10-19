@@ -40,17 +40,23 @@ public function show($id)
     }
     return view('show', compact('question'));
 }
-    public function store(Request $request) {
-        // في دالة store أو update:
-       $cleanDescription = Sanitizer::clean($request->description);
-        // 1. إنشاء السؤال وحفظه في متغير
-       $question= Question::create([
-            'title' => $request->title,
-            'description' => $cleanDescription,
-            'category_id' => $request->cat_id,
-            'user_id' => auth()->id(),
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string', // أو 'body' حسب اسم الحقل في الفورم
+            'category_id' => 'required|exists:categories,id',
+        ]);
 
-            ]);
+        Question::create([
+            'title' => $request->title,
+            'body' => $request->description, // التعديل هنا: ربط المدخل بعمود body في قاعدة البيانات
+            'category_id' => $request->category_id,
+            'user_id' => auth()->id(),
+        ]);
+
+        return redirect()->route('questions.index')->with('success', 'تم نشر السؤال بنجاح!');
+    }
             // 2. ربط الوسوم بالسؤال في الجدول الوسيط question_tag
             if ($request->filled('tags')) {
                 $tagsInput = $request->tags;
