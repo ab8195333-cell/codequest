@@ -20,47 +20,61 @@ class AiAssistantController extends Controller
             'history' => 'nullable|array',
         ]);
 
-        // 1. جلب رابط الـ Webhook (من قاعدة البيانات أو القيمة الافتراضية من config)
-        $webhookUrl = Setting::where('key', 'n8n_webhook_url')->value('value')
-                      ?? config('services.n8n.webhook_url');
+        // جلب مفتاح OpenAI API (من قاعدة البيانات أو من ملف الـ .env / config)
+        $apiKey = Setting::where('key', 'openai_api_key')->value('value')
+                  ?? config('services.openai.api_key') 
+                  ?? env('OPENAI_API_KEY');
 
-        // 2. جلب أمر الـ System Prompt (من قاعدة البيانات أو القيمة الافتراضية من config)
-        $adminSystemPrompt = Setting::where('key', 'system_prompt')->value('value')
-                             ?? config('services.ai.system_prompt');
-
-        if (! $webhookUrl) {
+        if (! $apiKey) {
             return response()->json([
                 'success' => false,
-                'message' => 'لم يتم إعداد رابط الـ Webhook الخاص بـ n8n.',
+                'message' => 'لم يتم إعداد مفتاح OpenAI API.',
             ], 400);
         }
 
+        // جلب أمر الـ System Prompt
+        $adminSystemPrompt = Setting::where('key', 'system_prompt')->value('value')
+                             ?? config('services.ai.system_prompt')
+                             ?? 'You are a helpful AI coding assistant.';
+
         try {
-            $response = Http::timeout(60)->post($webhookUrl, [
-                'code' => $request->code,
-                'system_prompt' => $adminSystemPrompt,
-                'history' => $request->history ?? [],
-                'username' => auth()->user()->name ?? 'guest',
-            ]);
+            // إرسال الطلب مباشرة إلى واجهة برمجة تطبيقات OpenAI
+            $response = Http::withToken($apiKey)
+                ->timeout(60)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-4o-mini', // يمكنك تغيير النموذج حسب رغبتك مثل gpt-3.5-turbo
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => $adminSystemPrompt
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Code/Question:\n" . $request->code
+                        ]
+                    ],
+                    'temperature' => 0.7,
+                ]);
 
             if ($response->successful()) {
-                $rawOutput = $response->json('output') ?? $response->body();
+                // استخراج الرد من استجابة OpenAI
+                $reply = $response->json('choices.0.message.content') ?? 'تم الاستجابة بنجاح.';
 
                 return response()->json([
                     'success' => true,
-                    'data' => $rawOutput,
+                    'data' => $reply,
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء معالجة الطلب من خادم الذكاء الاصطناعي.',
+                'message' => 'حدث خطأ من خادم OpenAI: ' . $response->json('error.message', 'خطأ غير معروف'),
             ], 500);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'فشل الاتصال بالخادم، يرجى التأكد من تشغيل n8n.',
+                'message' => 'فشل الاتصال بخدمة OpenAI.',
             ], 500);
         }
     }
