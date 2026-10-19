@@ -38,19 +38,19 @@ class QuestionController extends Controller
         return view('show', compact('question'));
     }
 
-       public function store(Request $request)
+     public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'cat_id' => 'required|exists:categories,id', // تم التعديل لتطابق name="cat_id" في الـ Blade
+            'description' => 'nullable|string', // جعلناه قابلاً للاستقبال حتى لو أرسل فارغاً مؤقتاً
+            'cat_id' => 'required|exists:categories,id',
         ]);
 
-        // 1. إنشاء السؤال وحفظ الـ cat_id في عمود category_id بقاعدة البيانات
+        // 1. إنشاء السؤال وحفظ الـ body (إذا كان فارغاً نضع نقطة أو نص افتراضي لتجنب خطأ الـ Not Null)
         $question = Question::create([
             'title' => $request->title,
-            'body' => $request->description,
-            'category_id' => $request->cat_id, // ربط المدخل بعمود category_id
+            'body' => $request->description ?? 'لايوجد وصف', 
+            'category_id' => $request->cat_id,
             'user_id' => auth()->id(),
         ]);
 
@@ -72,10 +72,10 @@ class QuestionController extends Controller
             }
         }
 
-        // 3. التوجيه المباشر إلى صفحة عرض السؤال الجديد
         return redirect()->route('questions.show', $question->question_id ?? $question->id)
             ->with('success', 'تم نشر السؤال بنجاح!');
     }
+
 
 
      
