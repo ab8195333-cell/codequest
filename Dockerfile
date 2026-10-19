@@ -1,14 +1,13 @@
 FROM webdevops/php-nginx:8.4-alpine
 
-# ضبط مسار الـ Web Root الخاص بصورة webdevops ليوجه Nginx إلى مجلد public
-ENV WEBROOT=/var/www/html/public
-ENV PHP_DOCUMENT_ROOT=/var/www/html/public
-
 # تحديد مجلد العمل
 WORKDIR /var/www/html
 
-# نسخ ملفات المشروع
+# نسخ ملفات المشروع بالكامل
 COPY . /var/www/html
+
+# نسخ ملف إعدادات Nginx المخصص لتوجيه المسار إلى public بشكل صحيح
+COPY docker/nginx.conf /opt/docker/etc/nginx/vhost.conf
 
 # تثبيت الحزم بدون مشاكل
 RUN composer install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
