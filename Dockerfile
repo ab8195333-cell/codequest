@@ -1,30 +1,16 @@
-FROM php:8.2-fpm
+FROM richarvey/nginx-php-fpm:latest
 
-# تثبيت المتطلبات ونظام الـ PostgreSQL إذا كنت تستخدم Supabase
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    zip \
-    unzip
+# نسخ ملفات المشروع إلى مجلد العمل
+COPY . /var/www/html
 
-# تثبيت الحزم المطلوبة لـ PHP بما فيها pdo_pgsql للاتصال بـ Supabase
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
+# تحديد مجلد التشغيل العام لـ Nginx
+ENV WEBROOT=/var/www/html/public
+ENV RUN_SCRIPTS=1
+ENV SKIP_COMPOSER=0
 
-# تثبيت Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# تثبيت Composer محلياً داخل الحاوية وتنفيذ التثبيت لتوليد الvendor
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# تحديد المجلد الرئيسي للعمل
+# تحديد مجلد العمل
 WORKDIR /var/www/html
-
-# نسخ ملفات المشروع إلى الحاوية
-COPY . .
-
-# تثبيت حزم لارافيل عبر Composer
-RUN composer install --no-dev --optimize-autoloader
-
-# ضبط الصلاحيات للمجلدات
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
