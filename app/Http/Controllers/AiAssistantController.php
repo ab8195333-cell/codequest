@@ -20,7 +20,7 @@ class AiAssistantController extends Controller
             'history' => 'nullable|array',
         ]);
 
-        // جلب مفتاح OpenAI API من قاعدة البيانات أو البيئة .env
+        // جلب مفتاح OpenAI API من جدول الإعدادات أو ملف البيئة
         $apiKey = Setting::where('key', 'openai_api_key')->value('value')
                   ?? config('services.openai.api_key') 
                   ?? env('OPENAI_API_KEY');
@@ -32,13 +32,12 @@ class AiAssistantController extends Controller
             ], 400);
         }
 
-        // جلب تعليمات النظام System Prompt
+        // جلب تعليمات النظام
         $adminSystemPrompt = Setting::where('key', 'system_prompt')->value('value')
                              ?? config('services.ai.system_prompt')
                              ?? 'You are a helpful AI coding assistant for CodeQuest.';
 
         try {
-            // إرسال الطلب مباشرة إلى OpenAI API
             $response = Http::withToken($apiKey)
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/chat/completions', [
