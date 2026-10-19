@@ -38,23 +38,23 @@ class QuestionController extends Controller
         return view('show', compact('question'));
     }
 
-     public function store(Request $request)
+  public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string', // جعلناه قابلاً للاستقبال حتى لو أرسل فارغاً مؤقتاً
+            'description' => 'required|string', // التأكد من إرسال الوصف من الفورم
             'cat_id' => 'required|exists:categories,id',
         ]);
 
-        // 1. إنشاء السؤال وحفظ الـ body (إذا كان فارغاً نضع نقطة أو نص افتراضي لتجنب خطأ الـ Not Null)
+        // إنشاء السؤال مع التأكد من إعطاء قيمة افتراضية للـ body إذا حدث أي نقص
         $question = Question::create([
             'title' => $request->title,
-            'body' => $request->description ?? 'لايوجد وصف', 
+            'body' => $request->description, // ربط description القادم من الفورم بعمود body في قاعدة البيانات
             'category_id' => $request->cat_id,
             'user_id' => auth()->id(),
         ]);
 
-        // 2. ربط الوسوم بالسؤال
+        // ربط الوسوم بالسؤال
         if ($request->filled('tags')) {
             $tagsInput = $request->tags;
 
@@ -75,8 +75,6 @@ class QuestionController extends Controller
         return redirect()->route('questions.show', $question->question_id ?? $question->id)
             ->with('success', 'تم نشر السؤال بنجاح!');
     }
-
-
 
      
 
