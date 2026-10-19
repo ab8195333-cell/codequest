@@ -34,13 +34,14 @@ class SocialAuthController extends Controller
                     ]);
                 } else {
                     // إنشاء مستخدم جديد تماماً في قاعدة بيانات Supabase
-                    $user = User::create([
-                        'name'      => $socialUser->getName() ?? $socialUser->getNickname() ?? 'User',
-                        'email'     => $socialUser->getEmail(),
-                        'google_id' => $socialUser->getId(),
-                        'avatar'    => $socialUser->getAvatar(),
-                        'password'  => Hash::make(Str::random(24)),
-                    ]);
+                 $user = User::create([
+    'name'      => $socialUser->getName() ?? $socialUser->getNickname() ?? 'User',
+    'email'     => $socialUser->getEmail(),
+    'google_id' => $socialUser->getId(),
+    'avatar'    => $socialUser->getAvatar(),
+    'password'  => Hash::make(Str::random(24)),
+    'is_active' => true, // أو 'status' => 1 حسب اسم العمود لديك
+]);
                 }
             }
 
