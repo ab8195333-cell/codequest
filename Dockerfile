@@ -8,9 +8,9 @@ ENV WEBROOT=/var/www/html/public
 ENV RUN_SCRIPTS=1
 ENV SKIP_COMPOSER=0
 
-# تثبيت Composer محلياً داخل الحاوية وتنفيذ التثبيت لتوليد الvendor
+# تثبيت Composer وتنزيل الحزم متجاوزاً السكريبتات التلقائية لتفادي الأخطاء
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-scripts
 
 # تحديد مجلد العمل
 WORKDIR /var/www/html
