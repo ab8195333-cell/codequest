@@ -40,23 +40,25 @@ public function show($id)
     }
     return view('show', compact('question'));
 }
-    public function store(Request $request)
+
+public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string', // أو 'body' حسب اسم الحقل في الفورم
+            'description' => 'required|string', // اسم الحقل القادم من نموذج الـ HTML (Form)
             'category_id' => 'required|exists:categories,id',
         ]);
 
         Question::create([
             'title' => $request->title,
-            'body' => $request->description, // التعديل هنا: ربط المدخل بعمود body في قاعدة البيانات
+            'body' => $request->description, // التعديل هنا: تخزين محتوى description في عمود body الحقيقي بالـ Database
             'category_id' => $request->category_id,
             'user_id' => auth()->id(),
         ]);
 
         return redirect()->route('questions.index')->with('success', 'تم نشر السؤال بنجاح!');
     }
+  
             // 2. ربط الوسوم بالسؤال في الجدول الوسيط question_tag
             if ($request->filled('tags')) {
                 $tagsInput = $request->tags;
