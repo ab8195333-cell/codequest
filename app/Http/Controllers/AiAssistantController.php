@@ -20,7 +20,7 @@ class AiAssistantController extends Controller
             'history' => 'nullable|array',
         ]);
 
-        // جلب مفتاح OpenAI API (من قاعدة البيانات أو من ملف الـ .env / config)
+        // جلب مفتاح OpenAI API من قاعدة البيانات أو البيئة .env
         $apiKey = Setting::where('key', 'openai_api_key')->value('value')
                   ?? config('services.openai.api_key') 
                   ?? env('OPENAI_API_KEY');
@@ -28,21 +28,21 @@ class AiAssistantController extends Controller
         if (! $apiKey) {
             return response()->json([
                 'success' => false,
-                'message' => 'لم يتم إعداد مفتاح OpenAI API.',
+                'message' => 'لم يتم إعداد مفتاح OpenAI API بشكل صحيح.',
             ], 400);
         }
 
-        // جلب أمر الـ System Prompt
+        // جلب تعليمات النظام System Prompt
         $adminSystemPrompt = Setting::where('key', 'system_prompt')->value('value')
                              ?? config('services.ai.system_prompt')
-                             ?? 'You are a helpful AI coding assistant.';
+                             ?? 'You are a helpful AI coding assistant for CodeQuest.';
 
         try {
-            // إرسال الطلب مباشرة إلى واجهة برمجة تطبيقات OpenAI
+            // إرسال الطلب مباشرة إلى OpenAI API
             $response = Http::withToken($apiKey)
                 ->timeout(60)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => 'gpt-4o-mini', // يمكنك تغيير النموذج حسب رغبتك مثل gpt-3.5-turbo
+                    'model' => 'gpt-4o-mini',
                     'messages' => [
                         [
                             'role' => 'system',
@@ -57,8 +57,7 @@ class AiAssistantController extends Controller
                 ]);
 
             if ($response->successful()) {
-                // استخراج الرد من استجابة OpenAI
-                $reply = $response->json('choices.0.message.content') ?? 'تم الاستجابة بنجاح.';
+                $reply = $response->json('choices.0.message.content') ?? 'تمت المعالجة بنجاح.';
 
                 return response()->json([
                     'success' => true,
