@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
             $supportEmail = Setting::where('key', 'support_email')->value('value');
             if ($supportEmail) {
                 Config::set('mail.from.address', $supportEmail);
-                View::share('supportEmail', $supportEmail); // يتيح استخدام $supportEmail في أي قالب
+                View::share('supportEmail', $supportEmail);
             }
         }
         Paginator::useBootstrapFive();
@@ -49,7 +49,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Answer::class, ContentPolicy::class);
         Gate::policy(Comment::class, ContentPolicy::class);
 
-        if (request()->header('X-Forwarded-Proto') === 'https') {
+        // فرض استخدام HTTPS في بيئة الإنتاج (Render) لضمان نجاح تسجيل الدخول عبر Google
+        if (config('app.env') === 'production') {
             URL::forceScheme('https');
         }
     }
