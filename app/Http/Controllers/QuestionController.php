@@ -38,18 +38,19 @@ class QuestionController extends Controller
         return view('show', compact('question'));
     }
 
-  public function store(Request $request)
+public function store(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string', // التأكد من إرسال الوصف من الفورم
             'cat_id' => 'required|exists:categories,id',
         ]);
 
-        // إنشاء السؤال مع التأكد من إعطاء قيمة افتراضية للـ body إذا حدث أي نقص
+        // التقاط محتوى الوصف من أي حقل محتمل وضمان عدم وصوله فارغاً
+        $questionBody = $request->input('description') ?? $request->input('body') ?? '<p>لايوجد وصف</p>';
+
         $question = Question::create([
             'title' => $request->title,
-            'body' => $request->description, // ربط description القادم من الفورم بعمود body في قاعدة البيانات
+            'body' => $questionBody, // سيتم الحفظ هنا ولن يحدث خطأ قاعدة بيانات أبداً
             'category_id' => $request->cat_id,
             'user_id' => auth()->id(),
         ]);
@@ -75,7 +76,6 @@ class QuestionController extends Controller
         return redirect()->route('questions.show', $question->question_id ?? $question->id)
             ->with('success', 'تم نشر السؤال بنجاح!');
     }
-
      
 
     public function updateindex(Question $question)
