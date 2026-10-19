@@ -36,9 +36,9 @@ class AiAssistantController extends Controller
                              ?? 'You are a helpful AI coding assistant for CodeQuest.';
 
         try {
-            // استخدام نموذج gemini-2.0-flash الأحدث والسريع جداً
+            // التحديث هنا: استخدام نموذج gemini-3.8-flash المعتمد حالياً
             $response = Http::timeout(60)
-                ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey, [
+                ->post('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' . $apiKey, [
                     'contents' => [
                         [
                             'parts' => [
