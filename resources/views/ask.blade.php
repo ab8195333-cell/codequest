@@ -19,7 +19,7 @@
         <!-- Form Card -->
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
-                <form action="{{ $isEdit ? route('question.update', $question->question_id) : route('ask.store') }}"
+                <form action="{{ $isEdit ? route('question.update', $question->id) : route('ask.store') }}"
                     method="POST" enctype="multipart/form-data">
                     @csrf
                     @if ($isEdit)
@@ -71,15 +71,19 @@
                             class="btn btn-{{ $isEdit ? 'warning' : 'primary' }} btn-lg px-5 rounded-3 fw-bold">
                             {{ $isEdit ? 'تحديث السؤال' : 'نشر السؤال' }}
                         </button>
+                    </div>
                 </form>
+
                 @if ($isEdit)
-                    <button type="button" class="btn btn-danger btn-lg px-5 rounded-3 fw-bold" data-bs-toggle='modal'
-                        data-bs-target="#delete">حذف السؤال</button>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-danger btn-lg px-5 rounded-3 fw-bold" data-bs-toggle='modal'
+                            data-bs-target="#delete">حذف السؤال</button>
+                    </div>
                 @endif
             </div>
         </div>
     </div>
-    </div>
+
     @if ($isEdit)
         {{-- 🔴 موديل تحقق قبل الحذف  --}}
         <div class="modal fade" id="delete" tabindex="-1" aria-labelledby="deleteLabel" aria-hidden="true">
@@ -97,7 +101,7 @@
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
 
-                        <form action="{{ route('question.destroy', $question->question_id) }}" method="POST"
+                        <form action="{{ route('question.destroy', $question->id) }}" method="POST"
                             class="ms-2">
                             @csrf
                             @method('DELETE')
@@ -122,12 +126,6 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
-    <!-- استدعاء مكتبة Quill قبل ملف quill-uploader.js -->
-    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-    <script src="{{ asset('js/quill-uploader.js') }}"></script>
-
-    @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
     <!-- استدعاء مكتبة Quill قبل ملف quill-uploader.js -->
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
