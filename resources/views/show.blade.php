@@ -584,7 +584,6 @@
 
         document.addEventListener("DOMContentLoaded", () => {
 
-            // 1. تهيئة Quill و Prism وإصلاح الأكواد البرمجية
             let mainQuill = null;
             if (typeof initQuillEditor === 'function' && document.getElementById('answer-editor')) {
                 mainQuill = initQuillEditor('answer-editor', 'answerInput', "{{ route('upload.editor.image') }}");
@@ -600,8 +599,6 @@
 
             if (typeof Prism !== 'undefined') Prism.highlightAll();
 
-
-            // 2. معالجة إرسال نموذج الإجابة ونقل محتوى محرر Quill بحقل الإدخال المخفي
             const answerForm = document.querySelector('form[action*="answer"]');
             if (answerForm) {
                 answerForm.addEventListener('submit', function (e) {
@@ -614,8 +611,6 @@
                 });
             }
 
-
-            // 3. إعدادات Axios و Interceptors
             axios.interceptors.response.use(
                 response => response,
                 error => {
@@ -679,8 +674,6 @@
                 disabledButtons = [];
             }
 
-
-            // 4. معالجة التصويت (Event Delegation)
             document.addEventListener('click', e => {
                 const btn = e.target.closest('.vote-btn');
                 if (!btn) return;
@@ -721,8 +714,6 @@
                 });
             });
 
-
-            // 5. معالجة فتح وإرسال مودال الإبلاغ
             const reportModalEl = document.getElementById('reportModal');
             const reportModal = reportModalEl ? new bootstrap.Modal(reportModalEl) : null;
             const reportForm = document.getElementById('reportForm');
@@ -771,8 +762,6 @@
                 });
             }
 
-
-            // 6. إدارة مودال التعديل والحذف الموحد
             let modalQuillInstance = null;
             const editModalEl = document.getElementById('editModal');
             const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
@@ -866,8 +855,6 @@
                 });
             }
 
-
-            // 7. دالة وأزرار الحذف (باستخدام Bootstrap Modal)
             const deleteModalEl = document.getElementById('deleteConfirmModal');
             const deleteConfirmModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
             let pendingDeleteData = null;
@@ -913,8 +900,6 @@
                 }
             });
 
-
-            // 8. تعطيل أزرار النماذج العادية لمنع التكرار
             document.querySelectorAll('form').forEach(form => {
                 form.addEventListener('submit', function(e) {
                     if (e.defaultPrevented) return;
