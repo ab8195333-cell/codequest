@@ -39,14 +39,16 @@ class NotificationController extends Controller
 
             if ($item) {
                 $targetUrl = match ($notif->notifiable_type) {
-                    Question::class => route('questions.show', $item->question_id),
+                    // استخدام id بدلاً من question_id
+                    Question::class => route('questions.show', $item->id),
 
-                    Answer::class => route('questions.show', $item->question_id).'#answer-'.$item->answer_id,
+                    // استخدام id و question_id بالشكل الصحيح للإجابة
+                    Answer::class => route('questions.show', $item->question_id).'#answer-'.$item->id,
 
                     Comment::class => match ($item->commentable_type) {
                         Question::class => route('questions.show', $item->commentable_id),
                         Answer::class => ($answer = Answer::find($item->commentable_id))
-                            ? route('questions.show', $answer->question_id).'#answer-'.$answer->answer_id
+                            ? route('questions.show', $answer->question_id).'#answer-'.$answer->id
                             : '#',
                         default => '#',
                     },
@@ -55,7 +57,6 @@ class NotificationController extends Controller
                 };
             }
 
-            // 1. تحديث أيقونة ولون التحذيرات
             $iconData = match ($notif->type) {
                 'answer' => ['icon' => 'bi-check-circle-fill', 'color' => 'text-success'],
                 'comment' => ['icon' => 'bi-chat-left-dots-fill', 'color' => 'text-primary'],
@@ -64,7 +65,6 @@ class NotificationController extends Controller
                 default => ['icon' => 'bi-exclamation-circle-fill', 'color' => 'text-warning'],
             };
 
-            // 2. تحديث العنوان ليشمل نوع التحذير الإشرافي warning
             $title = match ($notif->type) {
                 'answer' => 'إجابة جديدة',
                 'comment' => 'تعليق جديد',
@@ -84,7 +84,7 @@ class NotificationController extends Controller
                 'url' => $targetUrl,
                 'icon_class' => $iconData['icon'],
                 'icon_color' => $iconData['color'],
-                'type' => $notif->type, // تمرير الـ type للجافاسكربت لتسهيل التنسيق
+                'type' => $notif->type,
             ];
         });
 
