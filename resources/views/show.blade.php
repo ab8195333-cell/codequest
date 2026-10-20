@@ -2,7 +2,6 @@
 
 @section('content')
     @php
-
         $tpyeedit = null;
     @endphp
     <div class="container py-4">
@@ -16,7 +15,7 @@
                         <div class="d-flex align-items-start gap-3">
                             {{-- تصويت السؤال --}}
                             <div class="d-flex flex-column align-items-center vote-section"
-                                data-id="{{ $question->question_id }}" data-type="question">
+                                data-id="{{ $question->id }}" data-type="question">
                                 @php
                                     $userVote = auth()->check()
                                         ? $question->votes->where('user_id', auth()->id())->first()?->vote_type
@@ -58,13 +57,14 @@
 
                                         <div class="d-flex align-items-center gap-2">
                                             @can('update', $question)
-                                                <a href="{{ route('question.edit', $question->question_id) }}"
+                                                {{-- تم تصحيح تمرير المعرف للراوت هنا بنجاح --}}
+                                                <a href="{{ route('question.edit', $question->id) }}"
                                                     class="btn btn-warning btn-sm">تعديل السؤال</a>
                                             @endcan
 
                                             {{-- 🚩 زر الإبلاغ عن السؤال --}}
                                             <button class="btn btn-sm btn-outline-danger report-btn"
-                                                data-id="{{ $question->question_id }}" data-type="question"
+                                                data-id="{{ $question->id }}" data-type="question"
                                                 title="الإبلاغ عن هذا السؤال">
                                                 <i class="bi bi-flag-fill"></i>
                                             </button>
@@ -132,7 +132,7 @@
                                                     {{-- ✏️ زر تعديل تعليق السؤال --}}
                                                     <button
                                                         class="btn btn-link text-primary p-0 ms-1 edit-btn opacity-75 opacity-100-hover"
-                                                        data-id="{{ $comment->comment_id }}"
+                                                        data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                         data-type="comment"
                                                         data-content="{{ $comment->content }}"
                                                         title="تعديل التعليق">
@@ -142,7 +142,7 @@
                                                     {{-- 🗑️ زر حذف تعليق السؤال --}}
                                                     <button
                                                         class="btn btn-link text-danger p-0 ms-1 delete-btn opacity-75 opacity-100-hover"
-                                                        data-id="{{ $comment->comment_id ?? $comment->id }}"
+                                                        data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                         data-type="comment" title="حذف التعليق">
                                                         <i class="bi bi-trash fs-7"></i>
                                                     </button>
@@ -151,7 +151,7 @@
                                                 {{-- 🚩 زر الإبلاغ عن تعليق السؤال --}}
                                                 <button
                                                     class="btn btn-link text-muted p-0 ms-2 report-btn opacity-75 opacity-100-hover"
-                                                    data-id="{{ $comment->comment_id ?? $comment->id }}"
+                                                    data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                     data-type="comment" title="إبلاغ">
                                                     <i class="bi bi-flag fs-7"></i>
                                                 </button>
@@ -163,7 +163,7 @@
 
                                     @auth
                                         <form
-                                            action="{{ route('comments.store', ['type' => 'question', 'id' => $question->question_id]) }}"
+                                            action="{{ route('comments.store', ['type' => 'question', 'id' => $question->id]) }}"
                                             method="POST" class="mt-3">
                                             @csrf
                                             <div class="input-group input-group-sm">
@@ -195,7 +195,7 @@
                             <div class="d-flex align-items-start gap-3">
                                 {{-- تصويت الإجابة --}}
                                 <div class="d-flex flex-column align-items-center vote-section"
-                                    data-id="{{ $answer->answer_id }}" data-type="answer">
+                                    data-id="{{ $answer->id ?? $answer->answer_id }}" data-type="answer">
                                     @php
                                         $userAnswerVote = auth()->check()
                                             ? $answer->votes->where('user_id', auth()->id())->first()?->vote_type
@@ -225,8 +225,8 @@
 
                                             @auth
                                                 @if (auth()->id() === $question->user_id)
-                                                    <form action="{{ route('answer.accept', $answer->answer_id) }}"
-                                                        method="POST" class="d-inline ajax-form'">
+                                                    <form action="{{ route('answer.accept', $answer->id ?? $answer->answer_id) }}"
+                                                        method="POST" class="d-inline ajax-form">
                                                         @csrf
                                                         @method('PUT')
                                                         <input type="hidden" name="is_accepted" value="0">
@@ -240,7 +240,7 @@
                                     @elseif (!$question->answers->where('is_accepted', true)->count())
                                         @auth
                                             @if (auth()->id() === $question->user_id)
-                                                <form action="{{ route('answer.accept', $answer->answer_id) }}"
+                                                <form action="{{ route('answer.accept', $answer->id ?? $answer->answer_id) }}"
                                                     method="POST" class="mb-3 ajax-form">
                                                     @csrf
                                                     @method('PUT')
@@ -279,14 +279,14 @@
                                             @can('update', $answer)
                                                 {{-- ✏️ زر تعديل الإجابة --}}
                                                 <button class="btn btn-sm btn-link text-primary p-0 edit-btn"
-                                                    data-id="{{ $answer->answer_id }}" data-type="answer"
+                                                    data-id="{{ $answer->id ?? $answer->answer_id }}" data-type="answer"
                                                     data-content="{!! e($answer->answer_text) !!}" title="تعديل الإجابة">
                                                     <i class="bi bi-pencil-square fs-6"></i>
                                                 </button>
 
                                                 {{-- 🗑️ زر حذف الإجابة --}}
                                                 <button class="btn btn-sm btn-link text-danger p-0 delete-btn"
-                                                    data-id="{{ $answer->answer_id }}" data-type="answer"
+                                                    data-id="{{ $answer->id ?? $answer->answer_id }}" data-type="answer"
                                                     title="حذف الإجابة">
                                                     <i class="bi bi-trash fs-6"></i>
                                                 </button>
@@ -294,7 +294,7 @@
 
                                             {{-- 🚩 زر الإبلاغ عن هذه الإجابة --}}
                                             <button class="btn btn-sm btn-link text-muted p-0 report-btn"
-                                                data-id="{{ $answer->answer_id }}" data-type="answer"
+                                                data-id="{{ $answer->id ?? $answer->answer_id }}" data-type="answer"
                                                 title="الإبلاغ عن هذه الإجابة">
                                                 <i class="bi bi-flag"></i>
                                             </button>
@@ -306,7 +306,7 @@
                                         <h6 class="fw-bold mb-2 text-muted small"><i
                                                 class="bi bi-chat-left-text me-1"></i>التعليقات على الإجابة:</h6>
 
-                                        @forelse ($answer->comments as $comment)
+                                        @forelse ($answer->comments as$comment)
                                             <div
                                                 class="d-flex align-items-start justify-content-between mb-2 pb-1 border-bottom text-dark small">
                                                 <div class="d-flex align-items-start">
@@ -332,7 +332,7 @@
                                                         {{-- ✏️ زر تعديل تعليق الإجابة --}}
                                                         <button
                                                             class="btn btn-link text-primary p-0 ms-1 edit-btn opacity-75 opacity-100-hover"
-                                                            data-id="{{ $comment->comment_id }}"
+                                                            data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                             data-type="comment"
                                                             data-content="{{ $comment->content }}"
                                                             title="تعديل التعليق">
@@ -342,7 +342,7 @@
                                                         {{-- 🗑️ زر حذف تعليق الإجابة --}}
                                                         <button
                                                             class="btn btn-link text-danger p-0 ms-1 delete-btn opacity-75 opacity-100-hover"
-                                                            data-id="{{ $comment->comment_id ?? $comment->id }}"
+                                                            data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                             data-type="comment" title="حذف التعليق">
                                                             <i class="bi bi-trash fs-7"></i>
                                                         </button>
@@ -351,7 +351,7 @@
                                                     {{-- 🚩 زر الإبلاغ عن تعليق الإجابة --}}
                                                     <button
                                                         class="btn btn-link text-muted p-0 ms-2 report-btn opacity-75 opacity-100-hover"
-                                                        data-id="{{ $comment->comment_id ?? $comment->id }}"
+                                                        data-id="{{ $comment->id ?? $comment->comment_id }}"
                                                         data-type="comment" title="إبلاغ">
                                                         <i class="bi bi-flag fs-7"></i>
                                                     </button>
@@ -364,7 +364,7 @@
 
                                         @auth
                                             <form
-                                                action="{{ route('comments.store', ['type' => 'answer', 'id' => $answer->answer_id]) }}"
+                                                action="{{ route('comments.store', ['type' => 'answer', 'id' => $answer->id ?? $answer->answer_id]) }}"
                                                 method="POST" class="mt-2">
                                                 @csrf
                                                 <div class="input-group input-group-sm">
@@ -397,7 +397,7 @@
                                 <div class="mb-3">
                                     <div id="answer-editor" style="height: 250px;" dir="ltr"></div>
                                     <input type="hidden" name="answer" id="answerInput">
-                                    <input type="hidden" name="question_id" value="{{ $question->question_id }}">
+                                    <input type="hidden" name="question_id" value="{{ $question->id }}">
                                 </div>
                                 <button class="btn btn-primary px-4">أجب</button>
                             </form>
@@ -553,38 +553,6 @@
             font-size: 0.8rem;
         }
 
-        /* كود سابق  */
-        /* .token.keyword {
-                    color: #c678dd !important;
-                    font-weight: bold;
-                }
-
-                .token.function {
-                    color: #61afef !important;
-                }
-
-                .token.variable {
-                    color: #e06c75 !important;
-                }
-
-                .token.string {
-                    color: #98c379 !important;
-                }
-
-                .token.number {
-                    color: #d19a66 !important;
-                }
-
-                .token.comment {
-                    color: #7f848e !important;
-                    font-style: italic;
-                }
-
-                .token.operator {
-                    color: #56b6c2 !important;
-                } */
-
-        /* منع الضغط على الأزرار أثناء التحميل مع إظهار سبينر بسيط */
         .btn-loading {
             pointer-events: none;
             opacity: 0.65;
@@ -605,7 +573,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
     <script>
-        // دالة التشفير وإلغاء وسم الـ HTML
         function escapeHtml(text) {
             return text.replace(/[&<>"']/g, m => ({
                 '&': '&amp;',
@@ -618,9 +585,6 @@
 
         document.addEventListener("DOMContentLoaded", () => {
 
-                // ==========================================
-                // 1. تهيئة Quill و Prism وإصلاح الأكواد البرمجية
-                // ==========================================
                 if (typeof initQuillEditor === 'function' && document.getElementById('answer-editor')) {
                     initQuillEditor('answer-editor', 'answerInput', "{{ route('upload.editor.image') }}");
                 }
@@ -637,10 +601,6 @@
 
                 if (typeof Prism !== 'undefined') Prism.highlightAll();
 
-
-                // ==========================================
-                // 2. إعدادات Axios و Interceptors
-                // ==========================================
                 axios.interceptors.response.use(
                     response => response,
                     error => {
@@ -708,10 +668,6 @@
                     disabledButtons = [];
                 }
 
-
-                // ==========================================
-                // 3. معالجة التصويت (Event Delegation)
-                // ==========================================
                 document.addEventListener('click', e => {
                         const btn = e.target.closest('.vote-btn');
                         if (!btn) return;
@@ -761,10 +717,6 @@
                     });
                 });
 
-
-            // ==========================================
-            // 4. معالجة فتح وإرسال مودال الإبلاغ
-            // ==========================================
             const reportModalEl = document.getElementById('reportModal');
             const reportModal = reportModalEl ? new bootstrap.Modal(reportModalEl) : null;
             const reportForm = document.getElementById('reportForm');
@@ -815,10 +767,6 @@
             });
         }
 
-
-        // ==========================================
-        // 5. إدارة مودال التعديل والحذف الموحد
-        // ==========================================
         let modalQuillInstance = null;
         const editModalEl = document.getElementById('editModal');
         const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
@@ -828,9 +776,9 @@
             modalQuillInstance = new Quill('#edit-modal-quill-editor', {
                 theme: 'snow',
                 modules: {
-            syntax: false, // قم بتغييرها إلى false لإلغاء الاعتماد على highlight.js
+            syntax: false,
             toolbar: [
-                [{ 'header': [1, 2,3, false] }],
+                [{ 'header': [1, 2, 3, false] }],
                 ['bold', 'italic', 'strike'],
                 [{ 'align': [] }],
                 [{ 'direction': 'rtl' }],
@@ -857,27 +805,24 @@
             const plainTextContainer = document.getElementById('plainTextContainer');
             const modalTitle = document.getElementById('modalTitleText');
 
-// 1. دالة مساعدة لفك تشفير HTML Entities (مثل &lt; إلى <)
-function decodeHTML(html) {
-    const txt = document.createElement('textarea');
-    txt.innerHTML = html;
-    return txt.value;
-}
+            function decodeHTML(html) {
+                const txt = document.createElement('textarea');
+                txt.innerHTML = html;
+                return txt.value;
+            }
 
-// 2. جلب المحتوى من زر التعديل مباشرة
-let rawContent = btn.dataset.content || '';
-rawContent = decodeHTML(rawContent);
+            let rawContent = btn.dataset.content || '';
+            rawContent = decodeHTML(rawContent);
 
-if (type === 'answer') {
-    modalTitle.textContent = 'تعديل الإجابة';
-    quillContainer.classList.remove('d-none');
-    plainTextContainer.classList.add('d-none');
+            if (type === 'answer') {
+                modalTitle.textContent = 'تعديل الإجابة';
+                quillContainer.classList.remove('d-none');
+                plainTextContainer.classList.add('d-none');
 
-    if (modalQuillInstance) {
-        // تفريغ المحرر وتمرير النص المعدل
-        modalQuillInstance.setText('');
-        modalQuillInstance.clipboard.dangerouslyPasteHTML(0, rawContent);
-    }
+                if (modalQuillInstance) {
+                    modalQuillInstance.setText('');
+                    modalQuillInstance.clipboard.dangerouslyPasteHTML(0, rawContent);
+                }
             } else if (type === 'comment') {
                 modalTitle.textContent = 'تعديل التعليق';
                 plainTextContainer.classList.remove('d-none');
@@ -902,9 +847,8 @@ if (type === 'answer') {
                     (modalQuillInstance ? modalQuillInstance.root.innerHTML : '') :
                     document.getElementById('editPlainContent').value;
 
-                // استخدم المسار المعتمد على BASE URL لتفادي مشاكل Path / Subfolder:
-const baseUrl = "{{ url('/') }}";
-const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
+                const baseUrl = "{{ url('/') }}";
+                const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
 
                 axios.put(url, {
                         content: content,
@@ -926,21 +870,14 @@ const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comment
             });
         }
 
-        // ==========================================
-        // 6. دالة وأزرار الحذف (باستخدام Bootstrap Modal)
-        // ==========================================
         const deleteModalEl = document.getElementById('deleteConfirmModal');
         const deleteConfirmModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
 
-        let pendingDeleteData = null; // لتخزين بيانات العنصر المراد حذفه مؤقتاً
+        let pendingDeleteData = null;
 
-        // دالة تنفيذيّة ترسل طلب الحذف عبر Axios
         function executeDelete(id, type) {
-// جلب المسار الأساسي المعتمد في مشروعك تلقائياً
-const baseUrl = "{{ url('/') }}"; // سيرجع http://localhost/codequest/public
-
-// تركيب الرابط بشكل صحيح مع المجلد الفرعي
-const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
+            const baseUrl = "{{ url('/') }}";
+            const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
             axios.delete(url)
                 .then(({
                     data
@@ -958,7 +895,6 @@ const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comment
                 });
         }
 
-        // أ) عند الضغط على زر الحذف المباشر .delete-btn
         document.addEventListener('click', e => {
             const btn = e.target.closest('.delete-btn');
             if (!btn) return;
@@ -970,7 +906,6 @@ const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comment
             if (deleteConfirmModal) deleteConfirmModal.show();
         });
 
-        // ب) عند الضغط على زر الحذف من داخل مودال التعديل
         document.getElementById('modalDeleteBtn')?.addEventListener('click', () => {
             const id = document.getElementById('editTargetId').value;
             const type = document.getElementById('editTargetType').value;
@@ -982,7 +917,6 @@ const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comment
             if (deleteConfirmModal) deleteConfirmModal.show();
         });
 
-        // ج) تأكيد الحذف عند الضغط على زر "حذف" في مودال التأكيد
         document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
             if (pendingDeleteData) {
                 executeDelete(pendingDeleteData.id, pendingDeleteData.type);
@@ -990,10 +924,6 @@ const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comment
             }
         });
 
-
-        // ==========================================
-        // 7. تعطيل أزرار الفورمات العادية (HTTP Submit)
-        // ==========================================
         document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
             if (e.defaultPrevented) return;
