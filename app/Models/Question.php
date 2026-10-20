@@ -95,4 +95,9 @@ class Question extends Model
         $downVotes = $this->votes()->where('vote_type', 'down')->count();
         return $upVotes - $downVotes;
     }
+
+    public function getRouteKeyName()
+{
+    return 'id'; // إجبار لاراول على استخدام عمود id للبحث في الروابط
+}
 }
