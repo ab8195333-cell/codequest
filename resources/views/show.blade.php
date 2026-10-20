@@ -398,7 +398,7 @@
                                     <input type="hidden" name="answer" id="answerInput">
                                     <input type="hidden" name="question_id" value="{{ $question->id }}">
                                 </div>
-                                <button class="btn btn-primary px-4">أجب</button>
+                                <button class="btn btn-primary px-4" type="submit">أجب</button>
                             </form>
                         </div>
                     </div>
@@ -584,357 +584,347 @@
 
         document.addEventListener("DOMContentLoaded", () => {
 
-                if (typeof initQuillEditor === 'function' && document.getElementById('answer-editor')) {
-                    initQuillEditor('answer-editor', 'answerInput', "{{ route('upload.editor.image') }}");
+            // 1. تهيئة Quill و Prism وإصلاح الأكواد البرمجية
+            let mainQuill = null;
+            if (typeof initQuillEditor === 'function' && document.getElementById('answer-editor')) {
+                mainQuill = initQuillEditor('answer-editor', 'answerInput', "{{ route('upload.editor.image') }}");
+            }
+
+            document.querySelectorAll('.ql-code-block-container').forEach(container => {
+                const lines = Array.from(container.querySelectorAll('.ql-code-block')).map(el => el.innerText);
+                const rawText = lines.length ? lines.join('\n') : container.innerText;
+                if (rawText.trim()) {
+                    container.innerHTML = `<pre><code class="language-clike">${escapeHtml(rawText)}</code></pre>`;
                 }
+            });
 
-                document.querySelectorAll('.ql-code-block-container').forEach(container => {
-                    const lines = Array.from(container.querySelectorAll('.ql-code-block')).map(el => el
-                        .innerText);
-                    const rawText = lines.length ? lines.join('\n') : container.innerText;
-                    if (rawText.trim()) {
-                        container.innerHTML =
-                            `<pre><code class="language-clike">${escapeHtml(rawText)}</code></pre>`;
+            if (typeof Prism !== 'undefined') Prism.highlightAll();
+
+
+            // 2. معالجة إرسال نموذج الإجابة ونقل محتوى محرر Quill بحقل الإدخال المخفي
+            const answerForm = document.querySelector('form[action*="answer"]');
+            if (answerForm) {
+                answerForm.addEventListener('submit', function (e) {
+                    const answerInput = document.getElementById('answerInput');
+                    const quillEditorElement = document.querySelector('#answer-editor .ql-editor');
+                    
+                    if (answerInput && quillEditorElement) {
+                        answerInput.value = quillEditorElement.innerHTML;
                     }
                 });
+            }
 
-                if (typeof Prism !== 'undefined') Prism.highlightAll();
 
-                axios.interceptors.response.use(
-                    response => response,
-                    error => {
-                        if (error.response && error.response.status === 429) {
-                            let retryAfter = error.response.headers['retry-after'];
-
-                            showJsonModal({
-                                status: 429,
-                                title: 'تنبيه: محاولات كثيرة',
-                                retryAfter: retryAfter
-                            });
-
-                            return new Promise(() => {});
-                        }
-                        return Promise.reject(error);
-                    }
-                );
-                Object.assign(axios.defaults.headers.common, {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                });
-
-                let disabledButtons = [];
-
-                axios.interceptors.request.use(config => {
-                    const activeBtn = document.activeElement;
-                    if (activeBtn && (activeBtn.tagName === 'BUTTON' || activeBtn.classList.contains(
-                            'btn-action'))) {
-                        activeBtn.disabled = true;
-                        activeBtn.classList.add('btn-loading');
-                        disabledButtons.push(activeBtn);
-                    }
-                    return config;
-                }, error => Promise.reject(error));
-
-                axios.interceptors.response.use(response => {
-                    resetButtons();
-                    return response;
-                }, error => {
-                    resetButtons();
-
-                    const errData = error.response?.data;
-                    let message = 'حدث خطأ غير متوقع أثناء الاتصال بالسيرفر.';
-
-                    if (error.response?.status === 422 && errData?.errors) {
-                        message = Object.values(errData.errors).flat().join('<br>');
-                    } else if (errData?.message || errData?.error) {
-                        message = errData.message || errData.error;
-                    }
-
-                    showJsonModal({
-                        status: 'error',
-                        title: 'خطأ في العملية',
-                        message: message
-                    });
-
-                    return Promise.reject(error);
-                });
-
-                function resetButtons() {
-                    disabledButtons.forEach(btn => {
-                        btn.disabled = false;
-                        btn.classList.remove('btn-loading');
-                    });
-                    disabledButtons = [];
-                }
-
-                document.addEventListener('click', e => {
-                        const btn = e.target.closest('.vote-btn');
-                        if (!btn) return;
-
-                        @guest
+            // 3. إعدادات Axios و Interceptors
+            axios.interceptors.response.use(
+                response => response,
+                error => {
+                    if (error.response && error.response.status === 429) {
+                        let retryAfter = error.response.headers['retry-after'];
                         showJsonModal({
-                            status: 'warning',
-                            title: 'تنبيه',
-                            message: 'يجب عليك تسجيل الدخول لتتمكن من التصويت.'
+                            status: 429,
+                            title: 'تنبيه: محاولات كثيرة',
+                            retryAfter: retryAfter
                         });
-                        return;
-                    @endguest
+                        return new Promise(() => {});
+                    }
+                    return Promise.reject(error);
+                }
+            );
+            Object.assign(axios.defaults.headers.common, {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            });
 
-                    const section = btn.closest('.vote-section');
-                    const {
-                        id,
-                        type
-                    } = section.dataset;
-                    const vote_type = btn.dataset.vote;
+            let disabledButtons = [];
 
-                    axios.post("{{ route('vote') }}", {
-                        id,
-                        type,
-                        vote_type
-                    })
-                    .then(({
-                        data
-                    }) => {
-                        if (!data.success) return;
+            axios.interceptors.request.use(config => {
+                const activeBtn = document.activeElement;
+                if (activeBtn && (activeBtn.tagName === 'BUTTON' || activeBtn.classList.contains('btn-action'))) {
+                    activeBtn.disabled = true;
+                    activeBtn.classList.add('btn-loading');
+                    disabledButtons.push(activeBtn);
+                }
+                return config;
+            }, error => Promise.reject(error));
 
-                        section.querySelector('.votes-count').textContent = data.net_votes;
+            axios.interceptors.response.use(response => {
+                resetButtons();
+                return response;
+            }, error => {
+                resetButtons();
+                const errData = error.response?.data;
+                let message = 'حدث خطأ غير متوقع أثناء الاتصال بالسيرفر.';
 
-                        const upBtn = section.querySelector('.vote-up');
-                        const downBtn = section.querySelector('.vote-down');
+                if (error.response?.status === 422 && errData?.errors) {
+                    message = Object.values(errData.errors).flat().join('<br>');
+                } else if (errData?.message || errData?.error) {
+                    message = errData.message || errData.error;
+                }
 
-                        if (upBtn) {
-                            upBtn.classList.toggle('active', data.user_vote === 'up');
-                            upBtn.classList.toggle('btn-success', data.user_vote === 'up');
-                            upBtn.classList.toggle('text-white', data.user_vote === 'up');
-                        }
-
-                        if (downBtn) {
-                            downBtn.classList.toggle('active', data.user_vote === 'down');
-                            downBtn.classList.toggle('btn-danger', data.user_vote === 'down');
-                            downBtn.classList.toggle('text-white', data.user_vote === 'down');
-                        }
-                    });
+                showJsonModal({
+                    status: 'error',
+                    title: 'خطأ في العملية',
+                    message: message
                 });
 
+                return Promise.reject(error);
+            });
+
+            function resetButtons() {
+                disabledButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-loading');
+                });
+                disabledButtons = [];
+            }
+
+
+            // 4. معالجة التصويت (Event Delegation)
+            document.addEventListener('click', e => {
+                const btn = e.target.closest('.vote-btn');
+                if (!btn) return;
+
+                @guest
+                showJsonModal({
+                    status: 'warning',
+                    title: 'تنبيه',
+                    message: 'يجب عليك تسجيل الدخول لتتمكن من التصويت.'
+                });
+                return;
+                @endguest
+
+                const section = btn.closest('.vote-section');
+                const { id, type } = section.dataset;
+                const vote_type = btn.dataset.vote;
+
+                axios.post("{{ route('vote') }}", { id, type, vote_type })
+                .then(({ data }) => {
+                    if (!data.success) return;
+
+                    section.querySelector('.votes-count').textContent = data.net_votes;
+
+                    const upBtn = section.querySelector('.vote-up');
+                    const downBtn = section.querySelector('.vote-down');
+
+                    if (upBtn) {
+                        upBtn.classList.toggle('active', data.user_vote === 'up');
+                        upBtn.classList.toggle('btn-success', data.user_vote === 'up');
+                        upBtn.classList.toggle('text-white', data.user_vote === 'up');
+                    }
+
+                    if (downBtn) {
+                        downBtn.classList.toggle('active', data.user_vote === 'down');
+                        downBtn.classList.toggle('btn-danger', data.user_vote === 'down');
+                        downBtn.classList.toggle('text-white', data.user_vote === 'down');
+                    }
+                });
+            });
+
+
+            // 5. معالجة فتح وإرسال مودال الإبلاغ
             const reportModalEl = document.getElementById('reportModal');
             const reportModal = reportModalEl ? new bootstrap.Modal(reportModalEl) : null;
             const reportForm = document.getElementById('reportForm');
 
             document.addEventListener('click', e => {
-                    const btn = e.target.closest('.report-btn');
-                    if (!btn) return;
+                const btn = e.target.closest('.report-btn');
+                if (!btn) return;
 
-                    @guest
-                    showJsonModal({
-                        status: 'warning',
-                        title: 'تنبيه',
-                        message: 'يجب عليك تسجيل الدخول لتتمكن من الإبلاغ.'
-                    });
-                    return;
+                @guest
+                showJsonModal({
+                    status: 'warning',
+                    title: 'تنبيه',
+                    message: 'يجب عليك تسجيل الدخول لتتمكن من الإبلاغ.'
+                });
+                return;
                 @endguest
 
-                document.getElementById('reportTargetId').value = btn.dataset.id; document.getElementById(
-                    'reportTargetType').value = btn.dataset.type; reportForm.reset();
+                document.getElementById('reportTargetId').value = btn.dataset.id;
+                document.getElementById('reportTargetType').value = btn.dataset.type;
+                reportForm.reset();
 
                 if (reportModal) reportModal.show();
             });
 
-        if (reportForm) {
-            reportForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+            if (reportForm) {
+                reportForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
 
-                const formData = {
-                    id: document.getElementById('reportTargetId').value,
-                    type: document.getElementById('reportTargetType').value,
-                    reason: document.getElementById('reportReason').value,
-                    details: document.getElementById('reportDetails').value
-                };
+                    const formData = {
+                        id: document.getElementById('reportTargetId').value,
+                        type: document.getElementById('reportTargetType').value,
+                        reason: document.getElementById('reportReason').value,
+                        details: document.getElementById('reportDetails').value
+                    };
 
-                axios.post("{{ route('report.store') }}", formData)
-                    .then(({
-                        data
-                    }) => {
-                        if (reportModal) reportModal.hide();
-
-                        showJsonModal({
-                            status: 'success',
-                            title: 'تم الإرسال',
-                            message: data.message || 'تم استلام بلاغك بنجاح.'
+                    axios.post("{{ route('report.store') }}", formData)
+                        .then(({ data }) => {
+                            if (reportModal) reportModal.hide();
+                            showJsonModal({
+                                status: 'success',
+                                title: 'تم الإرسال',
+                                message: data.message || 'تم استلام بلاغك بنجاح.'
+                            });
+                            reportForm.reset();
                         });
-                        reportForm.reset();
-                    });
-            });
-        }
-
-        let modalQuillInstance = null;
-        const editModalEl = document.getElementById('editModal');
-        const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
-        const editForm = document.getElementById('editForm');
-
-        if (document.getElementById('edit-modal-quill-editor')) {
-            modalQuillInstance = new Quill('#edit-modal-quill-editor', {
-                theme: 'snow',
-                modules: {
-            syntax: false,
-            toolbar: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'strike'],
-                [{ 'align': [] }],
-                [{ 'direction': 'rtl' }],
-                ['blockquote', 'code-block'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                ['link', 'image']
-            ]
-        }
-            });
-        }
-
-        document.addEventListener('click', e => {
-            const btn = e.target.closest('.edit-btn');
-            if (!btn) return;
-
-            const {
-                id,
-                type
-            } = btn.dataset;
-            document.getElementById('editTargetId').value = id;
-            document.getElementById('editTargetType').value = type;
-
-            const quillContainer = document.getElementById('quillContainer');
-            const plainTextContainer = document.getElementById('plainTextContainer');
-            const modalTitle = document.getElementById('modalTitleText');
-
-            function decodeHTML(html) {
-                const txt = document.createElement('textarea');
-                txt.innerHTML = html;
-                return txt.value;
+                });
             }
 
-            let rawContent = btn.dataset.content || '';
-            rawContent = decodeHTML(rawContent);
 
-            if (type === 'answer') {
-                modalTitle.textContent = 'تعديل الإجابة';
-                quillContainer.classList.remove('d-none');
-                plainTextContainer.classList.add('d-none');
+            // 6. إدارة مودال التعديل والحذف الموحد
+            let modalQuillInstance = null;
+            const editModalEl = document.getElementById('editModal');
+            const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+            const editForm = document.getElementById('editForm');
 
-                if (modalQuillInstance) {
-                    modalQuillInstance.setText('');
-                    modalQuillInstance.clipboard.dangerouslyPasteHTML(0, rawContent);
+            if (document.getElementById('edit-modal-quill-editor')) {
+                modalQuillInstance = new Quill('#edit-modal-quill-editor', {
+                    theme: 'snow',
+                    modules: {
+                        syntax: false,
+                        toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'strike'],
+                            [{ 'align': [] }],
+                            [{ 'direction': 'rtl' }],
+                            ['blockquote', 'code-block'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['link', 'image']
+                        ]
+                    }
+                });
+            }
+
+            document.addEventListener('click', e => {
+                const btn = e.target.closest('.edit-btn');
+                if (!btn) return;
+
+                const { id, type } = btn.dataset;
+                document.getElementById('editTargetId').value = id;
+                document.getElementById('editTargetType').value = type;
+
+                const quillContainer = document.getElementById('quillContainer');
+                const plainTextContainer = document.getElementById('plainTextContainer');
+                const modalTitle = document.getElementById('modalTitleText');
+
+                function decodeHTML(html) {
+                    const txt = document.createElement('textarea');
+                    txt.innerHTML = html;
+                    return txt.value;
                 }
-            } else if (type === 'comment') {
-                modalTitle.textContent = 'تعديل التعليق';
-                plainTextContainer.classList.remove('d-none');
-                quillContainer.classList.add('d-none');
 
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = rawContent;
-                document.getElementById('editPlainContent').value = tempDiv.textContent || tempDiv.innerText || '';
+                let rawContent = btn.dataset.content || '';
+                rawContent = decodeHTML(rawContent);
+
+                if (type === 'answer') {
+                    modalTitle.textContent = 'تعديل الإجابة';
+                    quillContainer.classList.remove('d-none');
+                    plainTextContainer.classList.add('d-none');
+
+                    if (modalQuillInstance) {
+                        modalQuillInstance.setText('');
+                        modalQuillInstance.clipboard.dangerouslyPasteHTML(0, rawContent);
+                    }
+                } else if (type === 'comment') {
+                    modalTitle.textContent = 'تعديل التعليق';
+                    plainTextContainer.classList.remove('d-none');
+                    quillContainer.classList.add('d-none');
+
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = rawContent;
+                    document.getElementById('editPlainContent').value = tempDiv.textContent || tempDiv.innerText || '';
+                }
+
+                if (editModal) editModal.show();
+            });
+
+            if (editForm) {
+                editForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const id = document.getElementById('editTargetId').value;
+                    const type = document.getElementById('editTargetType').value;
+
+                    const content = type === 'answer' ?
+                        (modalQuillInstance ? modalQuillInstance.root.innerHTML : '') :
+                        document.getElementById('editPlainContent').value;
+
+                    const baseUrl = "{{ url('/') }}";
+                    const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
+
+                    axios.put(url, { content: content, type: type })
+                        .then(({ data }) => {
+                            if (editModal) editModal.hide();
+                            showJsonModal({
+                                status: 'success',
+                                title: 'تم التعديل',
+                                message: data.message || 'تم تحديث المحتوى بنجاح.'
+                            });
+                            setTimeout(() => location.reload(), 1000);
+                        });
+                });
             }
 
-            if (editModal) editModal.show();
-        });
 
-        if (editForm) {
-            editForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+            // 7. دالة وأزرار الحذف (باستخدام Bootstrap Modal)
+            const deleteModalEl = document.getElementById('deleteConfirmModal');
+            const deleteConfirmModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
+            let pendingDeleteData = null;
 
-                const id = document.getElementById('editTargetId').value;
-                const type = document.getElementById('editTargetType').value;
-
-                const content = type === 'answer' ?
-                    (modalQuillInstance ? modalQuillInstance.root.innerHTML : '') :
-                    document.getElementById('editPlainContent').value;
-
+            function executeDelete(id, type) {
                 const baseUrl = "{{ url('/') }}";
                 const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
-
-                axios.put(url, {
-                        content: content,
-                        type: type
-                    })
-                    .then(({
-                        data
-                    }) => {
+                axios.delete(url)
+                    .then(({ data }) => {
+                        if (deleteConfirmModal) deleteConfirmModal.hide();
                         if (editModal) editModal.hide();
-
                         showJsonModal({
                             status: 'success',
-                            title: 'تم التعديل',
-                            message: data.message || 'تم تحديث المحتوى بنجاح.'
+                            title: 'تم الحذف',
+                            message: data.message || 'تم الحذف بنجاح.'
                         });
-
                         setTimeout(() => location.reload(), 1000);
                     });
+            }
+
+            document.addEventListener('click', e => {
+                const btn = e.target.closest('.delete-btn');
+                if (!btn) return;
+
+                pendingDeleteData = {
+                    id: btn.dataset.id,
+                    type: btn.dataset.type
+                };
+                if (deleteConfirmModal) deleteConfirmModal.show();
             });
-        }
 
-        const deleteModalEl = document.getElementById('deleteConfirmModal');
-        const deleteConfirmModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
+            document.getElementById('modalDeleteBtn')?.addEventListener('click', () => {
+                const id = document.getElementById('editTargetId').value;
+                const type = document.getElementById('editTargetType').value;
+                pendingDeleteData = { id, type };
+                if (deleteConfirmModal) deleteConfirmModal.show();
+            });
 
-        let pendingDeleteData = null;
+            document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
+                if (pendingDeleteData) {
+                    executeDelete(pendingDeleteData.id, pendingDeleteData.type);
+                    pendingDeleteData = null;
+                }
+            });
 
-        function executeDelete(id, type) {
-            const baseUrl = "{{ url('/') }}";
-            const url = type === 'answer' ? `${baseUrl}/answers/${id}` : `${baseUrl}/comments/${id}`;
-            axios.delete(url)
-                .then(({
-                    data
-                }) => {
-                    if (deleteConfirmModal) deleteConfirmModal.hide();
-                    if (editModal) editModal.hide();
 
-                    showJsonModal({
-                        status: 'success',
-                        title: 'تم الحذف',
-                        message: data.message || 'تم الحذف بنجاح.'
-                    });
-
-                    setTimeout(() => location.reload(), 1000);
+            // 8. تعطيل أزرار النماذج العادية لمنع التكرار
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    if (e.defaultPrevented) return;
+                    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('btn-loading');
+                    }
                 });
-        }
-
-        document.addEventListener('click', e => {
-            const btn = e.target.closest('.delete-btn');
-            if (!btn) return;
-
-            pendingDeleteData = {
-                id: btn.dataset.id,
-                type: btn.dataset.type
-            };
-            if (deleteConfirmModal) deleteConfirmModal.show();
-        });
-
-        document.getElementById('modalDeleteBtn')?.addEventListener('click', () => {
-            const id = document.getElementById('editTargetId').value;
-            const type = document.getElementById('editTargetType').value;
-
-            pendingDeleteData = {
-                id,
-                type
-            };
-            if (deleteConfirmModal) deleteConfirmModal.show();
-        });
-
-        document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
-            if (pendingDeleteData) {
-                executeDelete(pendingDeleteData.id, pendingDeleteData.type);
-                pendingDeleteData = null;
-            }
-        });
-
-        document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            if (e.defaultPrevented) return;
-
-            const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
-
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.classList.add('btn-loading');
-            }
-        });
-        });
+            });
 
         });
     </script>
