@@ -13,70 +13,66 @@ use App\Models\Notification;
 
 class QuestionController extends Controller
 {
-    function indexAsk(Request $request)
+    public function show($id)
+    {
+        $question = Question::with([
+            'category', 
+            'user', 
+            'tags', 
+            'answers.user', 
+            'answers.comments.user', 
+            'comments.user',
+            'votes'
+        ])->findOrFail($id);
+
+        $question->increment('views_count');
+
+        return view('show', compact('question'));
+    }
+
+    public function indexAsk(Request $request)
     {
         $tags = Tag::all();
         $categories = Category::all();
         return view('ask', compact('tags', 'categories'));
     }
 
-    public function show($id)
+    public function store(Request $request)
     {
-        $question = Question::with(['answers' => function ($query) {
-            $query->orderBy('is_accepted', 'desc')
-                  ->orderBy('created_at', 'desc');
-        }, 'answers.user', 'comments'])->findOrFail($id);
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'cat_id' => 'required|exists:categories,id',
+        ]);
 
-        $ip = request()->ip();
-        $cacheKey = "viewed_question_{$question->question_id}_by_ip_{$ip}";
+        $questionBody = $request->input('description') ?: $request->input('body') ?: '<p>لايوجد وصف</p>';
 
-        if (!Cache::has($cacheKey)) {
-            $question->increment('views_count');
-            Cache::put($cacheKey, true, now()->addMinutes(10));
-        }
+        $question = Question::create([
+            'title' => $request->title,
+            'body' => $questionBody, 
+            'category_id' => $request->cat_id,
+            'user_id' => auth()->id(),
+        ]);
 
-        return view('show', compact('question'));
-    }
+        if ($request->filled('tags')) {
+            $tagsInput = $request->tags;
 
-public function store(Request $request)
-{
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'cat_id' => 'required|exists:categories,id',
-    ]);
+            if (is_array($tagsInput)) {
+                $tagsInput = $tagsInput[0] ?? null;
+            }
 
-    // التقاط محتوى الوصف وضمان عدم وصوله فارغاً أو نصاً فارغاً
-    $questionBody = $request->input('description') ?: $request->input('body') ?: '<p>لايوجد وصف</p>';
+            if (is_string($tagsInput)) {
+                $tagsData = json_decode($tagsInput, true);
 
-    $question = Question::create([
-        'title' => $request->title,
-        'body' => $questionBody, 
-        'category_id' => $request->cat_id,
-        'user_id' => auth()->id(),
-    ]);
-
-    // ربط الوسوم بالسؤال
-    if ($request->filled('tags')) {
-        $tagsInput = $request->tags;
-
-        if (is_array($tagsInput)) {
-            $tagsInput = $tagsInput[0] ?? null;
-        }
-
-        if (is_string($tagsInput)) {
-            $tagsData = json_decode($tagsInput, true);
-
-            if (is_array($tagsData)) {
-                $tagIds = array_column($tagsData, 'id');
-                $question->tags()->attach($tagIds);
+                if (is_array($tagsData)) {
+                    $tagIds = array_column($tagsData, 'id');
+                    $question->tags()->attach($tagIds);
+                }
             }
         }
-    }
 
-    return redirect()->route('questions.show', $question->question_id ?? $question->id)
-        ->with('success', 'تم نشر السؤال بنجاح!');
-}
-     
+        return redirect()->route('questions.show', $question->id)
+            ->with('success', 'تم نشر السؤال بنجاح!');
+    }
 
     public function updateindex(Question $question)
     {
@@ -122,20 +118,20 @@ public function store(Request $request)
         }
 
         if (auth()->user()->isStaff()) {
-            Notification::send($question->user_id, ' قام المشرف ' . auth()->user()->name . ' بتحديث سؤالك.', 'update_question', $question->question_id, Question::class);
+            Notification::send($question->user_id, ' قام المشرف ' . auth()->user()->name . ' بتحديث سؤالك.', 'update_question', $question->id, Question::class);
         }
 
-        return redirect()->route('questions.show', $question->question_id)
+        return redirect()->route('questions.show', $question->id)
             ->with('success', 'تم تحديث السؤال بنجاح');
     }
 
-    function deleteQ($id)
+    public function deleteQ($id)
     {
         $question = Question::findOrFail($id);
         $question->delete();
 
         if (auth()->user()->isStaff()) {
-            Notification::send($question->user_id, ' قام المشرف ' . auth()->user()->name . ' بحذف سؤالك.', 'update_question', $question->question_id, Question::class);
+            Notification::send($question->user_id, ' قام المشرف ' . auth()->user()->name . ' بحذف سؤالك.', 'update_question', $question->id, Question::class);
         }
 
         return redirect()->route('home')->with('success', 'تم حذف السؤال بنجاح');
