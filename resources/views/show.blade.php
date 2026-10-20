@@ -57,7 +57,6 @@
 
                                         <div class="d-flex align-items-center gap-2">
                                             @can('update', $question)
-                                                {{-- تم تصحيح تمرير المعرف للراوت هنا بنجاح --}}
                                                 <a href="{{ route('question.edit', $question->id) }}"
                                                     class="btn btn-warning btn-sm">تعديل السؤال</a>
                                             @endcan
