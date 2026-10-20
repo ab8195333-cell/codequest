@@ -31,7 +31,7 @@ class AnswerController extends Controller
 
             // إرسال الإشعار لصاحب السؤال
             $question = Question::find($request->question_id);
-            if ($question) {
+            if ($question && $question->user_id !== auth()->id()) {
                 Notification::send(
                     $question->user_id,
                     'قام ' . auth()->user()->name . ' بالإجابة على سؤالك.',
@@ -49,7 +49,8 @@ class AnswerController extends Controller
 
     public function acceptAnswer(Request $request, $id)
     {
-        $answer = Answer::findOrFail($id);
+        // استخدام البحث المباشر والصريح بعمود id لمنع أي خطأ بحث بـ answer_id
+        $answer = Answer::where('id', $id)->firstOrFail();
         $question = $answer->question;
 
         if (auth()->id() !== $question->user_id) {
@@ -69,13 +70,15 @@ class AnswerController extends Controller
             }
         });
 
-        Notification::send(
-            $answer->user_id,
-            'تم ' . ($isAccepted ? 'قبول' : 'رفض') . ' إجابتك على السؤال: "' . $question->title . '".',
-            'answer_status',
-            $answer->id,
-            Answer::class
-        );
+        if ($answer->user_id !== auth()->id()) {
+            Notification::send(
+                $answer->user_id,
+                'تم ' . ($isAccepted ? 'قبول' : 'رفض') . ' إجابتك على السؤال: "' . $question->title . '".',
+                'answer_status',
+                $answer->id,
+                Answer::class
+            );
+        }
 
         return back()->with('success', 'تم تحديث حالة الإجابة.');
     }
@@ -97,11 +100,11 @@ class AnswerController extends Controller
             'answer_text' => $cleanDescription,
         ]);
 
-        if (auth()->user()->isStaff()) {
+        if (auth()->user()->isStaff() && $answer->user_id !== auth()->id()) {
             $question = $answer->question;
             if ($question) {
                 Notification::send(
-                    $question->user_id,
+                    $answer->user_id,
                     'قام المشرف ' . auth()->user()->name . ' بتعديل إجابتك على سؤالك.',
                     'answer',
                     $question->id,
@@ -123,12 +126,11 @@ class AnswerController extends Controller
             return response()->json(['message' => 'غير مصرح لك بحذف هذه الإجابة.'], 403);
         }
 
-        $questionId = $answer->question_id;
         $question = $answer->question;
 
-        if (auth()->user()->isStaff() && $question) {
+        if (auth()->user()->isStaff() && $question && $answer->user_id !== auth()->id()) {
             Notification::send(
-                $question->user_id,
+                $answer->user_id,
                 'قام المشرف ' . auth()->user()->name . ' بحذف إجابة من سؤالك.',
                 'answer',
                 $question->id,
