@@ -7,45 +7,42 @@ use Illuminate\Database\Eloquent\Model;
 
 class Answer extends Model
 {
-    /** @use HasFactory<\Database\Factories\AnswerFactory> */
     use HasFactory;
 
-    protected $primaryKey = 'answer_id';
+    protected $primaryKey = 'id'; // تحديد أن المفتاح الأساسي هو id وليس answer_id
+
     protected $fillable = [
-        'answer_text',
         'question_id',
+        'user_id',
+        'answer_text',
         'is_accepted',
-        'user_id'
     ];
+
     public function question()
     {
-        return $this->belongsTo(Question::class, 'question_id');
+        return $this->belongsTo(Question::class, 'question_id', 'id');
     }
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-    // علاقة التعليقات
-public function comments()
-{
-    return $this->morphMany(Comment::class, 'commentable');
-}
 
-// علاقة البلاغات
-public function reports()
-{
-    return $this->morphMany(Report::class, 'reportable');
-}
-public function votes()
-{
-    return $this->morphMany(Vote::class, 'votable');
-}
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
 
-public function getNetVotesAttribute()
-{
-    $upVotes = $this->votes()->where('vote_type', 'up')->count();
-    $downVotes = $this->votes()->where('vote_type', 'down')->count();
-    return $upVotes - $downVotes;
-}
+    public function votes()
+    {
+        return $this->morphMany(Vote::class, 'votable');
+    }
+
+    // حساب صافي الأصوات للإجابة (+1 للأعلى و -1 للأسفل)
+    public function getNetVotesAttribute()
+    {
+        $upVotes = $this->votes()->where('vote_type', 'up')->count();
+        $downVotes = $this->votes()->where('vote_type', 'down')->count();
+        return $upVotes - $downVotes;
+    }
 }
