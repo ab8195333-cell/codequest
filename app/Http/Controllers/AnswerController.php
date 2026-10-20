@@ -83,66 +83,68 @@ class AnswerController extends Controller
         return back()->with('success', 'تم تحديث حالة الإجابة.');
     }
 
-    public function update(Request $request, Answer $answer)
-    {
-        // التحقق من الملكية أو الصلاحيات الإدارية
-        if ($answer->user_id !== auth()->id() && !auth()->user()->isStaff()) {
-            return response()->json(['message' => 'غير مصرح لك بتعديل هذه الإجابة.'], 403);
-        }
+  public function update(Request $request, $id)
+{
+    $answer = Answer::where('id', $id)->firstOrFail();
 
-        $request->validate([
-            'content' => 'required|string|min:5',
-        ]);
-
-        $cleanDescription = Sanitizer::clean($request->content);
-
-        $answer->update([
-            'answer_text' => $cleanDescription,
-        ]);
-
-        if (auth()->user()->isStaff() && $answer->user_id !== auth()->id()) {
-            $question = $answer->question;
-            if ($question) {
-                Notification::send(
-                    $answer->user_id,
-                    'قام المشرف ' . auth()->user()->name . ' بتعديل إجابتك على سؤالك.',
-                    'answer',
-                    $question->id,
-                    Question::class
-                );
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم تحديث الإجابة بنجاح.'
-        ]);
+    if ($answer->user_id !== auth()->id() && !auth()->user()->isStaff()) {
+        return response()->json(['message' => 'غير مصرح لك بتعديل هذه الإجابة.'], 403);
     }
 
-    public function destroy(Answer $answer)
-    {
-        // التحقق من الملكية أو الصلاحيات الإدارية
-        if ($answer->user_id !== auth()->id() && !auth()->user()->isStaff()) {
-            return response()->json(['message' => 'غير مصرح لك بحذف هذه الإجابة.'], 403);
-        }
+    $request->validate([
+        'content' => 'required|string|min:5',
+    ]);
 
+    $cleanDescription = Sanitizer::clean($request->content);
+
+    $answer->update([
+        'answer_text' => $cleanDescription,
+    ]);
+
+    if (auth()->user()->isStaff() && $answer->user_id !== auth()->id()) {
         $question = $answer->question;
-
-        if (auth()->user()->isStaff() && $question && $answer->user_id !== auth()->id()) {
+        if ($question) {
             Notification::send(
                 $answer->user_id,
-                'قام المشرف ' . auth()->user()->name . ' بحذف إجابة من سؤالك.',
+                'قام المشرف ' . auth()->user()->name . ' بتعديل إجابتك.',
                 'answer',
                 $question->id,
                 Question::class
             );
         }
-
-        $answer->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم حذف الإجابة بنجاح.'
-        ]);
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'تم تحديث الإجابة بنجاح.'
+    ]);
+}
+
+   public function destroy($id)
+{
+    $answer = Answer::where('id', $id)->firstOrFail();
+
+    if ($answer->user_id !== auth()->id() && !auth()->user()->isStaff()) {
+        return response()->json(['message' => 'غير مصرح لك بحذف هذه الإجابة.'], 403);
+    }
+
+    $question = $answer->question;
+
+    if (auth()->user()->isStaff() && $question && $answer->user_id !== auth()->id()) {
+        Notification::send(
+            $answer->user_id,
+            'قام المشرف ' . auth()->user()->name . ' بحذف إجابتك على سؤال: "' . $question->title . '".',
+            'answer',
+            $question->id,
+            Question::class
+        );
+    }
+
+    $answer->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'تم حذف الإجابة بنجاح.'
+    ]);
+}
 }
