@@ -8,13 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Notification;
+
 class CommentController extends Controller
 {
-    // public function index()
-    // {
-    //     return view('comments.index');
-    // }
-
     public function store(Request $request, string $type, int $id)
     {
         $request->validate([
@@ -37,13 +33,16 @@ class CommentController extends Controller
 
         return redirect()->back()->with('success', 'تم إرسال التعليق بنجاح.');
     }
+
     /**
      * تحديث التعليق
      */
-    public function update(Request $request, Comment $comment)
+    public function update(Request $request, $id)
     {
+        $comment = Comment::where('id', $id)->firstOrFail();
+
         // التحقق من الملكية
-        if ($comment->user_id !== auth()->id()&& !auth()->user()->isStaff()){
+        if ($comment->user_id !== auth()->id() && !auth()->user()->isStaff()){
             return response()->json(['message' => 'غير مصرح لك بتعديل هذا التعليق.'], 403);
         }
 
@@ -56,17 +55,17 @@ class CommentController extends Controller
         $comment->update([
             'content' => $request->content,
         ]);
-        if (auth()->user()->isStaff()) {
 
-
+        if (auth()->user()->isStaff() && $comment->user_id !== auth()->id()) {
             Notification::send(
                 $comment->user_id,
-                ' قام المشرف ' . auth()->user()->name . ' بتعديل تعليقك.',
+                'قام المشرف ' . auth()->user()->name . ' بتعديل تعليقك.',
                 'comment',
                 $comment->id,
                 Comment::class
             );
-            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'تم تحديث التعليق بنجاح.'
@@ -76,25 +75,28 @@ class CommentController extends Controller
     /**
      * حذف التعليق
      */
-    public function destroy(Comment $comment)
+    public function destroy($id)
     {
+        $comment = Comment::where('id', $id)->firstOrFail();
+
         // التحقق من الملكية
-        if ($comment->user_id !== auth()->id()&& !auth()->user()->isStaff()) {
+        if ($comment->user_id !== auth()->id() && !auth()->user()->isStaff()) {
             return response()->json(['message' => 'غير مصرح لك بحذف هذا التعليق.'], 403);
         }
 
+        $commentUser = $comment->user_id;
         $comment->delete();
-        if (auth()->user()->isStaff()) {
 
-
+        if (auth()->user()->isStaff() && $commentUser !== auth()->id()) {
             Notification::send(
-                $comment->user_id,
-                ' قام المشرف ' . auth()->user()->name . ' بحذف  تعليقك.',
+                $commentUser,
+                'قام المشرف ' . auth()->user()->name . ' بحذف تعليقك.',
                 'comment',
-                $comment->id,
+                $id,
                 Comment::class
             );
-            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'تم حذف التعليق بنجاح.'
